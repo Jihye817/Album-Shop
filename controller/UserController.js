@@ -1,14 +1,24 @@
 const conn = require("../mariadb");
 const { StatusCodes } = require("http-status-codes");
 const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv");
+const crypto = require("crypto");
+
+dotenv.config();
 
 const join = (req, res) => {
   const { email, name, password } = req.body;
 
-  let sql = "INSERT INTO users (email, name, password) VALUES (?, ?, ?)";
-  let values = [email, name, password];
+  const salt = crypto.randomBytes(10).toString("base64");
+  const hashPassword = crypto
+    .pbkdf2Sync(password, salt, 10000, 10, "sha512")
+    .toString("base64");
+
+  let sql = "INSERT INTO users (email, name, password, salt) VALUES (?, ?, ?, ?)";
+  let values = [email, name, hashPassword, salt];
   conn.query(sql, values, (err, results) => {
     if (err) {
+      console.log(err);
       return res.status(StatusCodes.BAD_REQUEST).end();
     }
     res.status(StatusCodes.CREATED).json(results);
