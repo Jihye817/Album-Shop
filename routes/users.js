@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const conn = require("../mariadb");
 const { validationResult, body } = require("express-validator");
+const { StatusCodes } = require("http-status-codes");
 
 router.use(express.json());
 
@@ -33,9 +34,9 @@ router.post(
     let values = [email, name, password];
     conn.query(sql, values, (err, results) => {
       if (err) {
-        return res.status(400).end();
+        return res.status(StatusCodes.BAD_REQUEST).end();
       }
-      res.status(201).json(results);
+      res.status(StatusCodes.CREATED).json(results);
     });
   }
 );
