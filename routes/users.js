@@ -1,8 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const conn = require("../mariadb");
 const { validationResult, body } = require("express-validator");
-const { StatusCodes } = require("http-status-codes");
+const {
+  join,
+  login,
+  passwordResetRequest,
+  passwordReset,
+} = require("../controller/UserController");
 
 router.use(express.json());
 
@@ -15,7 +19,6 @@ const validate = (req, res, next) => {
   }
 };
 
-//회원가입
 router.post(
   "/join",
   [
@@ -27,27 +30,12 @@ router.post(
       .withMessage("비밀번호를 확인해주세요"),
     validate,
   ],
-  (req, res) => {
-    const { email, name, password } = req.body;
-
-    let sql = "INSERT INTO users (email, name, password) VALUES (?, ?, ?)";
-    let values = [email, name, password];
-    conn.query(sql, values, (err, results) => {
-      if (err) {
-        return res.status(StatusCodes.BAD_REQUEST).end();
-      }
-      res.status(StatusCodes.CREATED).json(results);
-    });
-  }
+  join
 );
 
-//로그인
-router.post("/login", (req, res) => {});
+router.post("/login", login);
 
 //비밀번호 초기화 요청 / 초기화
-router
-  .route("/reset")
-  .post((req, res) => {})
-  .put((req, res) => {});
+router.route("/reset").post(passwordResetRequest).put(passwordReset);
 
 module.exports = router;
