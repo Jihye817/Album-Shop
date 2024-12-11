@@ -47,8 +47,44 @@ const login = (req, res) => {
   });
 };
 
-const passwordResetRequest = (req, res) => {};
+const passwordResetRequest = (req, res) => {
+  const { email } = req.body;
 
-const passwordReset = (req, res) => {};
+  let sql = "SELECT * FROM users WHERE email = ?";
+  conn.query(sql, email, (err, results) => {
+    if (err) {
+      return res.status(StatusCodes.BAD_REQUEST).end();
+    }
+
+    const user = results[0];
+    if (user) {
+      res.status(StatusCodes.OK).json({
+        email: email,
+      });
+    } else {
+      res.status(StatusCodes.UNAUTHORIZED).end();
+    }
+  });
+};
+
+const passwordReset = (req, res) => {
+  const { email, password } = req.body;
+
+  const values = [password, email];
+  let sql = "UPDATE users SET password = ? WHERE email = ?";
+  conn.query(sql, values, (err, results) => {
+    if (err) {
+      return res.status(StatusCodes.BAD_REQUEST).end();
+    }
+
+    if (results.affectedRows !== 0) {
+      res.status(StatusCodes.OK).json({
+        message: "비밀번호가 변경되었습니다.",
+      });
+    } else {
+      res.status(StatusCodes.BAD_REQUEST).end();
+    }
+  });
+};
 
 module.exports = { join, login, passwordResetRequest, passwordReset };

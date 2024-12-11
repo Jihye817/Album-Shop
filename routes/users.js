@@ -47,6 +47,25 @@ router.post(
 );
 
 //비밀번호 초기화 요청 / 초기화
-router.route("/reset").post(passwordResetRequest).put(passwordReset);
+router
+  .route("/reset")
+  .post(
+    [
+      body("email").notEmpty().isEmail().withMessage("이메일을 확인해주세요"),
+      validate,
+    ],
+    passwordResetRequest
+  )
+  .put(
+    [
+      body("email").notEmpty().isEmail().withMessage("이메일을 확인해주세요"),
+      body("password")
+        .notEmpty()
+        .isString()
+        .withMessage("비밀번호를 확인해주세요"),
+      validate,
+    ],
+    passwordReset
+  );
 
 module.exports = router;
