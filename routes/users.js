@@ -33,7 +33,18 @@ router.post(
   join
 );
 
-router.post("/login", login);
+router.post(
+  "/login",
+  [
+    body("email").notEmpty().isEmail().withMessage("이메일을 확인해주세요"),
+    body("password")
+      .notEmpty()
+      .isString()
+      .withMessage("비밀번호를 확인해주세요"),
+    validate,
+  ],
+  login
+);
 
 //비밀번호 초기화 요청 / 초기화
 router.route("/reset").post(passwordResetRequest).put(passwordReset);
