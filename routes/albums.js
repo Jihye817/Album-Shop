@@ -1,13 +1,16 @@
 const express = require("express");
+const {
+  allAlbums,
+  albumsByCategory,
+  albumDetail,
+} = require("../controller/AlbumController");
 const router = express.Router();
 router.use(express.json());
 
-router.get("/", (req, res) => {
-  //전체 앨범 조회
-  //categoryId 있을 경우 -> 카테고리별 도서 목록 조회
-});
+router.get("/", allAlbums);
 
-//개별 앨범 조회
-router.get("/:id", (req, res) => {});
+router.get("/", albumsByCategory);
+
+router.get("/:id", albumDetail);
 
 module.exports = router;
