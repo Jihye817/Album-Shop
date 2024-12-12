@@ -1,4 +1,0 @@
-{
-  "watch": ["app.js", "controller", "routes"],
-  "ext": "js,json"
-}
