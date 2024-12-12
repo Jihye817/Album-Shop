@@ -4,7 +4,6 @@ const { StatusCodes } = require("http-status-codes");
 const { validationResult, param } = require("express-validator");
 const {
   allAlbums,
-  albumsByCategory,
   albumDetail,
 } = require("../controller/AlbumController");
 
@@ -20,8 +19,6 @@ const validate = (req, res, next) => {
 };
 
 router.get("/", allAlbums);
-
-router.get("/", albumsByCategory);
 
 router.get(
   "/:id",
