@@ -2,33 +2,36 @@ const conn = require("../mariadb");
 const { StatusCodes } = require("http-status-codes");
 
 const allAlbums = (req, res) => {
-  const { category_id } = req.query;
+  const { category_id, newAlbum } = req.query;
 
-  if (category_id) {
-    const sql = "SELECT * FROM albums WHERE category_id = ?";
-    conn.query(sql, category_id, (err, results) => {
-      if (err) {
-        console.log(err);
-        res.status(StatusCodes.BAD_REQUEST).end();
-      }
-      if (results.length !== 0) {
-        res.status(StatusCodes.OK).json(results[0]);
-      } else {
-        res
-          .status(StatusCodes.NOT_FOUND)
-          .json({ message: "해당 카테고리의 앨범 데이터가 없습니다." });
-      }
-    });
-  } else {
-    const sql = "SELECT * FROM albums";
-    conn.query(sql, (err, results) => {
-      if (err) {
-        console.log(err);
-        res.status(StatusCodes.BAD_REQUEST).end();
-      }
-      res.status(StatusCodes.OK).json(results);
-    });
+  let sql = "SELECT * FROM albums ";
+  let values = [];
+
+  if (category_id && newAlbum) {
+    sql += `WHERE category_id = ? AND pub_date BETWEEN DATE_SUB(NOW(), INTERVAL 30 DAY) AND NOW()`;
+    values = [category_id, newAlbum];
+  } else if (category_id) {
+    sql += "WHERE category_id = ?";
+    values = [category_id];
+  } else if (newAlbum) {
+    sql += `WHERE pub_date BETWEEN DATE_SUB(NOW(), INTERVAL 30 DAY) AND NOW()`;
+    values = [newAlbum];
   }
+
+  conn.query(sql, values, (err, results) => {
+    if (err) {
+      console.log(err);
+      res.status(StatusCodes.BAD_REQUEST).end();
+    }
+
+    if (results.length !== 0) {
+      res.status(StatusCodes.OK).json(results);
+    } else {
+      res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ message: "해당하는 앨범 데이터가 없습니다." });
+    }
+  });
 };
 
 const albumDetail = (req, res) => {
