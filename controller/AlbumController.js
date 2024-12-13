@@ -34,7 +34,8 @@ const allAlbums = (req, res) => {
 const albumDetail = (req, res) => {
   const { id } = req.params;
 
-  const sql = "SELECT * FROM albums WHERE id = ?";
+  const sql = `SELECT * FROM albums LEFT JOIN categories
+    ON albums.category_id = categories.id WHERE albums.id = ?`;
   conn.query(sql, id, (err, results) => {
     if (err) {
       console.log(err);
