@@ -2,21 +2,23 @@ const conn = require("../mariadb");
 const { StatusCodes } = require("http-status-codes");
 
 const allAlbums = (req, res) => {
-  const { category_id, newAlbum } = req.query;
+  const { category_id, newAlbum, limit, currentPage } = req.query;
 
+  let offset = limit * (currentPage - 1);
   let sql = "SELECT * FROM albums ";
-  let values = [];
+  let values = [parseInt(limit), offset];
 
   if (category_id && newAlbum) {
     sql += `WHERE category_id = ? AND pub_date BETWEEN DATE_SUB(NOW(), INTERVAL 30 DAY) AND NOW()`;
-    values = [category_id, newAlbum];
+    values = [category_id, ...values];
   } else if (category_id) {
     sql += "WHERE category_id = ?";
-    values = [category_id];
+    values = [category_id, ...values];
   } else if (newAlbum) {
     sql += `WHERE pub_date BETWEEN DATE_SUB(NOW(), INTERVAL 30 DAY) AND NOW()`;
-    values = [newAlbum];
   }
+
+  sql += "LIMIT ? OFFSET ? ";
 
   conn.query(sql, values, (err, results) => {
     if (err) {
