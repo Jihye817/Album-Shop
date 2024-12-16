@@ -5,17 +5,18 @@ const allAlbums = (req, res) => {
   const { category_id, newAlbum, limit, currentPage } = req.query;
 
   let offset = limit * (currentPage - 1);
-  let sql = "SELECT * FROM albums ";
+  let sql =
+    "SELECT *, (SELECT count(*) FROM likes WHERE liked_album_id=albums.id) AS likes FROM albums ";
   let values = [parseInt(limit), offset];
 
   if (category_id && newAlbum) {
     sql += `WHERE category_id = ? AND pub_date BETWEEN DATE_SUB(NOW(), INTERVAL 30 DAY) AND NOW()`;
     values = [category_id, ...values];
   } else if (category_id) {
-    sql += "WHERE category_id = ?";
+    sql += "WHERE category_id = ? ";
     values = [category_id, ...values];
   } else if (newAlbum) {
-    sql += `WHERE pub_date BETWEEN DATE_SUB(NOW(), INTERVAL 30 DAY) AND NOW()`;
+    sql += `WHERE pub_date BETWEEN DATE_SUB(NOW(), INTERVAL 30 DAY) AND NOW() `;
   }
 
   sql += "LIMIT ? OFFSET ? ";
@@ -37,11 +38,18 @@ const allAlbums = (req, res) => {
 };
 
 const albumDetail = (req, res) => {
-  const { id } = req.params;
+  const album_id = req.params.id;
+  let { user_id } = req.body;
 
-  const sql = `SELECT * FROM albums LEFT JOIN categories
-    ON albums.category_id = categories.id WHERE albums.id = ?`;
-  conn.query(sql, id, (err, results) => {
+  const sql = `SELECT *,
+    (SELECT count(*) FROM likes WHERE liked_album_id = albums.id) AS likes,
+    (SELECT EXISTS (SELECT * FROM likes WHERE user_id = ? AND liked_album_id = ?)) AS liked
+    FROM albums
+    LEFT JOIN categories
+    ON albums.category_id = categories.category_id
+    WHERE albums.id = ?;`;
+  const values = [user_id, album_id, album_id];
+  conn.query(sql, values, (err, results) => {
     if (err) {
       console.log(err);
       res.status(StatusCodes.BAD_REQUEST).end();
