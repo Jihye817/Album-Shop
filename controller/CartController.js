@@ -17,14 +17,21 @@ const addToCart = (req, res) => {
 };
 
 const getCartItems = (req, res) => {
-  res.json("장바구니 아이템 목록 조회");
-};
+  let { user_id } = req.body;
+  let sql = `SELECT cartItems.id, album_id, title, summary, quantity, price FROM cartItems
+    LEFT JOIN albums ON cartItems.album_id = albums.id WHERE user_id = ?`;
 
+  conn.query(sql, user_id, (err, results) => {
+    if (err) {
+      console.log(err);
+      return res.status(StatusCodes.BAD_REQUEST).end();
+    }
+    res.status(StatusCodes.OK).json(results);
+  });
+};
 
 const deleteCartItem = (req, res) => {
   res.json("장바구니 아이템 삭제");
 };
 
-
-
-module.exports = {addToCart, getCartItems, deleteCartItem}
+module.exports = { addToCart, getCartItems, deleteCartItem };
