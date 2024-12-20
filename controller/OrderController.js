@@ -66,6 +66,7 @@ const getOrders = async (req, res) => {
     database: "AlbumShop",
     dateStrings: true,
   });
+
   let sql = `SELECT orders.id, created_at, address, receiver, contact, album_title, total_quantity, total_price
     FROM orders LEFT JOIN deliveries 
     ON orders.delivery_id = deliveries.id`;
@@ -74,8 +75,23 @@ const getOrders = async (req, res) => {
   res.status(StatusCodes.OK).json(rows);
 };
 
-const getOrderDetail = (req, res) => {
-  res.json("주문 상세 조회");
+const getOrderDetail = async (req, res) => {
+  const conn = await mariadb.createConnection({
+    host: process.env.DB_LOCALHOST,
+    user: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
+    database: "AlbumShop",
+    dateStrings: true,
+  });
+  const {id} = req.params;
+
+  let sql = `SELECT album_id, title, artist, price, quantity 
+    FROM orderedAlbums LEFT JOIN albums 
+    ON orderedAlbums.album_id = albums.id 
+    WHERE order_id = ?`;
+  let [rows, fields] = await conn.query(sql, id);
+
+  res.status(StatusCodes.OK).json(rows);
 };
 
 module.exports = { order, getOrders, getOrderDetail };
