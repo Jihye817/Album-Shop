@@ -34,19 +34,28 @@ const order = async (req, res) => {
     VALUES (?, ?, ?, ?, ?)`;
   values = [firstAlbumTitle, totalQuantity, totalPrice, userId, deliveryId];
   [results] = await conn.execute(sql, values);
-  console.log(results);
 
   orderId = results.insertId;
 
-  sql = `INSERT INTO orderedAlbums (order_id, album_id, quantity) VALUES ?;`;
+  sql = `SELECT album_id, quantity FROM cartItems WHERE id IN (?)`;
+  let [orderItems, fields] = await conn.query(sql, [items]);
+
+  sql = `INSERT INTO orderedAlbums (order_id, album_id, quantity) VALUES ?`;
   values = [];
-  items.forEach((item) => {
+  orderItems.forEach((item) => {
     values.push([orderId, item.album_id, item.quantity]);
   });
   [results] = await conn.query(sql, [values]);
 
-  console.log(results);
-  return res.status(StatusCodes.OK).json(results);
+  let result = await deleteCartItems(conn, items);
+
+  return res.status(StatusCodes.OK).json(result);
+};
+
+const deleteCartItems = async (conn, items) => {
+  let sql = `DELETE FROM cartItems WHERE id IN (?)`;
+  let result = await conn.query(sql, [items]);
+  return result;
 };
 
 const getOrders = (req, res) => {
