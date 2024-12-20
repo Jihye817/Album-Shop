@@ -58,8 +58,20 @@ const deleteCartItems = async (conn, items) => {
   return result;
 };
 
-const getOrders = (req, res) => {
-  res.json("주문 목록 조회");
+const getOrders = async (req, res) => {
+  const conn = await mariadb.createConnection({
+    host: process.env.DB_LOCALHOST,
+    user: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
+    database: "AlbumShop",
+    dateStrings: true,
+  });
+  let sql = `SELECT orders.id, created_at, address, receiver, contact, album_title, total_quantity, total_price
+    FROM orders LEFT JOIN deliveries 
+    ON orders.delivery_id = deliveries.id`;
+  let [rows, fields] = await conn.query(sql);
+
+  res.status(StatusCodes.OK).json(rows);
 };
 
 const getOrderDetail = (req, res) => {
