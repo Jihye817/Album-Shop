@@ -23,19 +23,18 @@ router
   .route("/")
   .post(
     [
-      body("album_id").isEmpty().withMessage("album_id 값을 확인해주세요"),
+      body("album_id").exists().withMessage("album_id 값을 확인해주세요"),
       body("quantity")
-        .isEmpty()
+        .exists()
         .isInt()
         .withMessage("quantity 값을 확인해주세요"),
-      body("user_id").isEmpty().withMessage("user_id 값을 확인해주세요"),
       validate,
     ],
     addToCart
   )
   .get(
     [
-      body("user_id").exists().isInt().withMessage("user_id 값을 확인해주세요"),
+      body("selected").exists().withMessage("selected 값을 확인해주세요"),
       validate,
     ],
     getCartItems
