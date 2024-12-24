@@ -59,16 +59,28 @@ const getCartItems = (req, res) => {
 };
 
 const deleteCartItem = (req, res) => {
-  let cartItemId = req.params.id;
+  const authorization = ensureAuthorization(req);
 
-  let sql = "DELETE FROM cartItems WHERE id = ?";
-  conn.query(sql, cartItemId, (err, results) => {
-    if (err) {
-      console.log(err);
-      return res.status(StatusCodes.BAD_REQUEST).end();
-    }
-    res.status(StatusCodes.OK).json(results);
-  });
+  if (authorization instanceof jwt.TokenExpiredError) {
+    return res
+      .status(StatusCodes.UNAUTHORIZED)
+      .json({ message: "로그인 세션이 만료되었습니다." });
+  } else if (authorization instanceof jwt.JsonWebTokenError) {
+    return res
+      .status(StatusCodes.UNAUTHORIZED)
+      .json({ message: "유효하지 않은 토큰입니다." });
+  } else {
+    let cartItemId = req.params.id;
+
+    let sql = "DELETE FROM cartItems WHERE id = ?";
+    conn.query(sql, cartItemId, (err, results) => {
+      if (err) {
+        console.log(err);
+        return res.status(StatusCodes.BAD_REQUEST).end();
+      }
+      res.status(StatusCodes.OK).json(results);
+    });
+  }
 };
 
 module.exports = { addToCart, getCartItems, deleteCartItem };
