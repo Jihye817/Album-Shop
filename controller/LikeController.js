@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const conn = require("../mariadb");
 const { StatusCodes } = require("http-status-codes");
+const ensureAuthorization = require("../auth");
 const dotenv = require("dotenv");
 dotenv.config();
 
@@ -33,7 +34,7 @@ const addLike = (req, res) => {
 const deleteLike = (req, res) => {
   const likedAlbumId = req.params.id;
   const authorization = ensureAuthorization(req);
-  
+
   if (authorization instanceof jwt.TokenExpiredError) {
     return res
       .status(StatusCodes.UNAUTHORIZED)
@@ -60,19 +61,5 @@ const deleteLike = (req, res) => {
     });
   }
 };
-
-function ensureAuthorization(req) {
-  try {
-    let receivedJwt = req.headers["authorization"];
-    let decodedJwt = jwt.verify(receivedJwt, process.env.PRIVATE_KEY);
-
-    return decodedJwt;
-  } catch (error) {
-    console.log(error.name);
-    console.log(error.message);
-
-    return error;
-  }
-}
 
 module.exports = { addLike, deleteLike };

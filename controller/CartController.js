@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const { StatusCodes } = require("http-status-codes");
 const conn = require("../mariadb");
+const ensureAuthorization = require("../auth");
 
 const addToCart = (req, res) => {
   let { album_id, quantity } = req.body;
@@ -69,19 +70,5 @@ const deleteCartItem = (req, res) => {
     res.status(StatusCodes.OK).json(results);
   });
 };
-
-function ensureAuthorization(req) {
-  try {
-    let receivedJwt = req.headers["authorization"];
-    let decodedJwt = jwt.verify(receivedJwt, process.env.PRIVATE_KEY);
-
-    return decodedJwt;
-  } catch (error) {
-    console.log(error.name);
-    console.log(error.message);
-
-    return error;
-  }
-}
 
 module.exports = { addToCart, getCartItems, deleteCartItem };

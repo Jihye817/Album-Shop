@@ -34,7 +34,7 @@ router
   )
   .get(
     [
-      body("selected").exists().withMessage("selected 값을 확인해주세요"),
+      // body("selected").exists().withMessage("selected 값을 확인해주세요"),
       validate,
     ],
     getCartItems
