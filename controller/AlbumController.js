@@ -1,5 +1,7 @@
 const conn = require("../mariadb");
 const { StatusCodes } = require("http-status-codes");
+const ensureAuthorization = require("../auth");
+const jwt = require("jsonwebtoken");
 
 const allAlbums = (req, res) => {
   const { category_id, newAlbum, limit, currentPage } = req.query;
@@ -38,30 +40,63 @@ const allAlbums = (req, res) => {
 };
 
 const albumDetail = (req, res) => {
-  const album_id = req.params.id;
-  let { user_id } = req.body;
+  const authorization = ensureAuthorization(req);
 
-  const sql = `SELECT *,
-    (SELECT count(*) FROM likes WHERE liked_album_id = albums.id) AS likes,
-    (SELECT EXISTS (SELECT * FROM likes WHERE user_id = ? AND liked_album_id = ?)) AS liked
-    FROM albums
-    LEFT JOIN categories
-    ON albums.category_id = categories.category_id
-    WHERE albums.id = ?;`;
-  const values = [user_id, album_id, album_id];
-  conn.query(sql, values, (err, results) => {
-    if (err) {
-      console.log(err);
-      res.status(StatusCodes.BAD_REQUEST).end();
-    }
-    if (results[0]) {
-      res.status(StatusCodes.OK).json(results[0]);
-    } else {
-      res
-        .status(StatusCodes.NOT_FOUND)
-        .json({ message: "해당 id의 앨범 데이터가 없습니다." });
-    }
-  });
+  if (authorization instanceof jwt.TokenExpiredError) {
+    return res
+      .status(StatusCodes.UNAUTHORIZED)
+      .json({ message: "로그인 세션이 만료되었습니다." });
+  } else if (authorization instanceof jwt.JsonWebTokenError) {
+    return res
+      .status(StatusCodes.UNAUTHORIZED)
+      .json({ message: "유효하지 않은 토큰입니다." });
+  } else if (authorization instanceof ReferenceError) {
+    const album_id = req.params.id;
+    const sql = `SELECT *,
+      (SELECT count(*) FROM likes WHERE liked_album_id = albums.id) AS likes 
+      FROM albums
+      LEFT JOIN categories
+      ON albums.category_id = categories.category_id
+      WHERE albums.id = ?;`;
+    const values = [album_id];
+    conn.query(sql, values, (err, results) => {
+      if (err) {
+        console.log(err);
+        res.status(StatusCodes.BAD_REQUEST).end();
+      }
+      if (results[0]) {
+        res.status(StatusCodes.OK).json(results[0]);
+      } else {
+        res
+          .status(StatusCodes.NOT_FOUND)
+          .json({ message: "해당 id의 앨범 데이터가 없습니다." });
+      }
+    });
+  } else {
+    const album_id = req.params.id;
+
+    const sql = `SELECT *,
+      (SELECT count(*) FROM likes WHERE liked_album_id = albums.id) AS likes,
+      (SELECT EXISTS (SELECT * FROM likes WHERE user_id = ? AND liked_album_id = ?)) AS liked
+      FROM albums
+      LEFT JOIN categories
+      ON albums.category_id = categories.category_id
+      WHERE albums.id = ?;`;
+    const values = [authorization.id, album_id, album_id];
+    conn.query(sql, values, (err, results) => {
+      if (err) {
+        console.log(err);
+        res.status(StatusCodes.BAD_REQUEST).end();
+      }
+      if (results[0]) {
+        res.status(StatusCodes.OK).json(results[0]);
+      } else {
+        res
+          .status(StatusCodes.NOT_FOUND)
+          .json({ message: "해당 id의 앨범 데이터가 없습니다." });
+      }
+    });
+  }
 };
 
 module.exports = { allAlbums, albumDetail };
