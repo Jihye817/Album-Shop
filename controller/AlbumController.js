@@ -29,7 +29,11 @@ const allAlbums = (req, res) => {
       // res.status(StatusCodes.BAD_REQUEST).end();
     }
     console.log(results);
-    if (results.length !== 0) {
+    if (results.length) {
+      results.map(function (result) {
+        result.pubDate = result.pub_date;
+        delete result.pub_date;
+      });
       allAlbumsRes.books = results;
     } else {
       return res
