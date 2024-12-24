@@ -9,8 +9,6 @@ const ensureAuthorization = (req) => {
 
     return decodedJwt;
   } catch (error) {
-    console.log(error.name);
-    console.log(error.message);
 
     return error;
   }

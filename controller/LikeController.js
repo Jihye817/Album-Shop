@@ -2,8 +2,6 @@ const jwt = require("jsonwebtoken");
 const conn = require("../mariadb");
 const { StatusCodes } = require("http-status-codes");
 const ensureAuthorization = require("../auth");
-const dotenv = require("dotenv");
-dotenv.config();
 
 const addLike = (req, res) => {
   const likedAlbumId = req.params.id;
