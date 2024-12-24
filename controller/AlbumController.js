@@ -4,11 +4,12 @@ const ensureAuthorization = require("../auth");
 const jwt = require("jsonwebtoken");
 
 const allAlbums = (req, res) => {
+  let allAlbumsRes = {};
   const { category_id, newAlbum, limit, currentPage } = req.query;
 
   let offset = limit * (currentPage - 1);
   let sql =
-    "SELECT *, (SELECT count(*) FROM likes WHERE liked_album_id=albums.id) AS likes FROM albums ";
+    "SELECT SQL_CALC_FOUND_ROWS *, (SELECT count(*) FROM likes WHERE liked_album_id=albums.id) AS likes FROM albums ";
   let values = [parseInt(limit), offset];
 
   if (category_id && newAlbum) {
@@ -22,19 +23,34 @@ const allAlbums = (req, res) => {
   }
 
   sql += "LIMIT ? OFFSET ? ";
-
   conn.query(sql, values, (err, results) => {
     if (err) {
       console.log(err);
-      res.status(StatusCodes.BAD_REQUEST).end();
+      // res.status(StatusCodes.BAD_REQUEST).end();
     }
-
+    console.log(results);
     if (results.length !== 0) {
-      res.status(StatusCodes.OK).json(results);
+      allAlbumsRes.books = results;
     } else {
-      res
+      return res
         .status(StatusCodes.NOT_FOUND)
         .json({ message: "해당하는 앨범 데이터가 없습니다." });
+    }
+  });
+
+  sql = "SELECT found_rows()";
+  conn.query(sql, (err, results) => {
+    if (err) {
+      console.log(err);
+      res.status(StatusCodes.BAD_REQUEST).end();
+    } else {
+      let totalCount = results[0]["found_rows()"];
+      let pagination = {};
+      pagination.currentPage = currentPage;
+      pagination.totalCount = totalCount;
+      allAlbumsRes.pagination = pagination;
+
+      return res.status(StatusCodes.OK).json(allAlbumsRes);
     }
   });
 };
