@@ -1,18 +1,11 @@
-// const conn = require("../mariadb");
 const mariadb = require("mysql2/promise");
 const { StatusCodes } = require("http-status-codes");
+const ensureAuthorization = require("../auth");
+const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 dotenv.config();
 
 const order = async (req, res) => {
-  const {
-    items,
-    delivery,
-    totalQuantity,
-    totalPrice,
-    userId,
-    firstAlbumTitle,
-  } = req.body;
   let deliveryId;
   let orderId;
   const conn = await mariadb.createConnection({
@@ -22,34 +15,53 @@ const order = async (req, res) => {
     database: "AlbumShop",
     dateStrings: true,
   });
+  const authorization = ensureAuthorization(req);
 
-  let sql = `INSERT INTO deliveries (address, receiver, contact)
+  if (authorization instanceof jwt.TokenExpiredError) {
+    return res
+      .status(StatusCodes.UNAUTHORIZED)
+      .json({ message: "로그인 세션이 만료되었습니다." });
+  } else if (authorization instanceof jwt.JsonWebTokenError) {
+    return res
+      .status(StatusCodes.UNAUTHORIZED)
+      .json({ message: "유효하지 않은 토큰입니다." });
+  } else {
+    const { items, delivery, totalQuantity, totalPrice, firstAlbumTitle } =
+      req.body;
+    let sql = `INSERT INTO deliveries (address, receiver, contact)
     VALUES (?, ?, ?)`;
-  let values = [delivery.address, delivery.receiver, delivery.contact];
-  let [results] = await conn.execute(sql, values);
+    let values = [delivery.address, delivery.receiver, delivery.contact];
+    let [results] = await conn.execute(sql, values);
 
-  deliveryId = results.insertId;
+    deliveryId = results.insertId;
 
-  sql = `INSERT INTO orders (album_title, total_quantity, total_price, user_id, delivery_id)
+    sql = `INSERT INTO orders (album_title, total_quantity, total_price, user_id, delivery_id)
     VALUES (?, ?, ?, ?, ?)`;
-  values = [firstAlbumTitle, totalQuantity, totalPrice, userId, deliveryId];
-  [results] = await conn.execute(sql, values);
+    values = [
+      firstAlbumTitle,
+      totalQuantity,
+      totalPrice,
+      authorization.id,
+      deliveryId,
+    ];
+    [results] = await conn.execute(sql, values);
 
-  orderId = results.insertId;
+    orderId = results.insertId;
 
-  sql = `SELECT album_id, quantity FROM cartItems WHERE id IN (?)`;
-  let [orderItems, fields] = await conn.query(sql, [items]);
+    sql = `SELECT album_id, quantity FROM cartItems WHERE id IN (?)`;
+    let [orderItems, fields] = await conn.query(sql, [items]);
+    
+    sql = `INSERT INTO orderedAlbums (order_id, album_id, quantity) VALUES ?`;
+    values = [];
+    orderItems.forEach((item) => {
+      values.push([orderId, item.album_id, item.quantity]);
+    });
+    [results] = await conn.query(sql, [values]);
 
-  sql = `INSERT INTO orderedAlbums (order_id, album_id, quantity) VALUES ?`;
-  values = [];
-  orderItems.forEach((item) => {
-    values.push([orderId, item.album_id, item.quantity]);
-  });
-  [results] = await conn.query(sql, [values]);
+    let result = await deleteCartItems(conn, items);
 
-  let result = await deleteCartItems(conn, items);
-
-  return res.status(StatusCodes.OK).json(result);
+    return res.status(StatusCodes.OK).json(result);
+  }
 };
 
 const deleteCartItems = async (conn, items) => {
@@ -83,13 +95,13 @@ const getOrderDetail = async (req, res) => {
     database: "AlbumShop",
     dateStrings: true,
   });
-  const {id} = req.params;
+  const orderId = req.params.id;
 
   let sql = `SELECT album_id, title, artist, price, quantity 
     FROM orderedAlbums LEFT JOIN albums 
     ON orderedAlbums.album_id = albums.id 
     WHERE order_id = ?`;
-  let [rows, fields] = await conn.query(sql, id);
+  let [rows, fields] = await conn.query(sql, orderId);
 
   res.status(StatusCodes.OK).json(rows);
 };
